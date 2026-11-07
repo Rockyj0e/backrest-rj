@@ -545,7 +545,7 @@ const SnapshotDetails = ({ snapshot }: { snapshot: ResticSnapshot }) => {
             </Box>
           </SimpleGrid>
           {savings && (
-            <SimpleGrid columns={{ base: 2, md: 5 }} gap={4} mt={2}>
+            <SimpleGrid columns={{ base: 2, md: 4 }} gap={4} mt={2}>
               <Box>
                 <Text fontWeight="bold">{m.op_row_fe_size()}</Text>
                 <Text color="fg.muted">{formatBytes(savings.sourceBytes)}</Text>
@@ -555,13 +555,7 @@ const SnapshotDetails = ({ snapshot }: { snapshot: ResticSnapshot }) => {
                 <Text color="fg.muted">
                   {savings.packedBytes === undefined
                     ? "n/a"
-                    : formatBytes(savings.packedBytes)}
-                </Text>
-              </Box>
-              <Box>
-                <Text fontWeight="bold">{m.op_row_saved_pct()}</Text>
-                <Text color="fg.muted">
-                  {formatPercent(savings.savedRatio)}
+                    : `${formatBytes(savings.packedBytes)} (${formatPercent(savings.savedRatio)})`}
                 </Text>
               </Box>
               <Box>
