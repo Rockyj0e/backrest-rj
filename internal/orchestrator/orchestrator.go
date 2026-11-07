@@ -317,6 +317,12 @@ func (o *Orchestrator) ScheduleDefaultTasks(config *v1.Config) error {
 		if _, err := o.ScheduleTask(t, tasks.TaskPriorityForget); err != nil {
 			return fmt.Errorf("schedule scheduled forget task for repo %q: %w", repo.GetId(), err)
 		}
+
+		// Schedule a periodic index snapshots task so snapshots created outside of Backrest are picked up
+		t = tasks.NewPeriodicIndexSnapshotsTask(repo)
+		if _, err := o.ScheduleTask(t, tasks.TaskPriorityIndexSnapshots); err != nil {
+			return fmt.Errorf("schedule periodic index snapshots task for repo %q: %w", repo.GetId(), err)
+		}
 	}
 
 	return nil
