@@ -38,7 +38,9 @@ import {
 } from "../../../gen/ts/v1/restic_pb";
 import { SnapshotBrowser } from "../repositories/SnapshotBrowser";
 import {
+  computeSnapshotSavings,
   formatBytes,
+  formatPercent,
   formatDuration,
   formatTime,
   normalizeSnapshotId,
@@ -479,6 +481,7 @@ export const OperationRow = ({
 
 const SnapshotDetails = ({ snapshot }: { snapshot: ResticSnapshot }) => {
   const summary = snapshot.summary;
+  const savings = summary ? computeSnapshotSavings(summary) : undefined;
 
   return (
     <>
@@ -541,6 +544,40 @@ const SnapshotDetails = ({ snapshot }: { snapshot: ResticSnapshot }) => {
               </Text>
             </Box>
           </SimpleGrid>
+          {savings && (
+            <SimpleGrid columns={{ base: 2, md: 5 }} gap={4} mt={2}>
+              <Box>
+                <Text fontWeight="bold">{m.op_row_fe_size()}</Text>
+                <Text color="fg.muted">{formatBytes(savings.sourceBytes)}</Text>
+              </Box>
+              <Box>
+                <Text fontWeight="bold">{m.op_row_packed_size()}</Text>
+                <Text color="fg.muted">
+                  {savings.packedBytes === undefined
+                    ? "n/a"
+                    : formatBytes(savings.packedBytes)}
+                </Text>
+              </Box>
+              <Box>
+                <Text fontWeight="bold">{m.op_row_saved_pct()}</Text>
+                <Text color="fg.muted">
+                  {formatPercent(savings.savedRatio)}
+                </Text>
+              </Box>
+              <Box>
+                <Text fontWeight="bold">{m.op_row_dedup_pct()}</Text>
+                <Text color="fg.muted">
+                  {formatPercent(savings.dedupRatio)}
+                </Text>
+              </Box>
+              <Box>
+                <Text fontWeight="bold">{m.op_row_compression_pct()}</Text>
+                <Text color="fg.muted">
+                  {formatPercent(savings.compressionRatio)}
+                </Text>
+              </Box>
+            </SimpleGrid>
+          )}
         </>
       )}
     </>

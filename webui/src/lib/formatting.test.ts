@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  computeSnapshotSavings,
   formatBytes,
+  formatPercent,
   formatDate,
   formatDuration,
   formatMonth,
@@ -153,5 +155,63 @@ describe("localISOTime", () => {
     const ms = 1610668800000;
     expect(localISOTime(String(ms))).toBe(localISOTime(ms));
     expect(localISOTime(new Date(ms))).toBe(localISOTime(ms));
+  });
+});
+
+describe("computeSnapshotSavings", () => {
+  const GiB = 1024 ** 3;
+
+  it("derives dedup, compression and total savings", () => {
+    const s = computeSnapshotSavings({
+      totalBytesProcessed: 100 * GiB,
+      dataAdded: 10 * GiB,
+      dataAddedPacked: 4 * GiB,
+    })!;
+    expect(s.dedupRatio).toBeCloseTo(0.9);
+    expect(s.compressionRatio).toBeCloseTo(0.6);
+    expect(s.savedRatio).toBeCloseTo(0.96);
+  });
+
+  it("accepts bigint inputs", () => {
+    const s = computeSnapshotSavings({
+      totalBytesProcessed: 200n,
+      dataAdded: 20n,
+      dataAddedPacked: 10n,
+    })!;
+    expect(s.savedRatio).toBeCloseTo(0.95);
+  });
+
+  it("leaves packed-derived values undefined when restic did not report packed size", () => {
+    const s = computeSnapshotSavings({
+      totalBytesProcessed: 100,
+      dataAdded: 10,
+      dataAddedPacked: 0,
+    })!;
+    expect(s.dedupRatio).toBeCloseTo(0.9);
+    expect(s.packedBytes).toBeUndefined();
+    expect(s.compressionRatio).toBeUndefined();
+    expect(s.savedRatio).toBeUndefined();
+  });
+
+  it("treats an unchanged snapshot (nothing added) as 100% saved", () => {
+    const s = computeSnapshotSavings({
+      totalBytesProcessed: 100,
+      dataAdded: 0,
+      dataAddedPacked: 0,
+    })!;
+    expect(s.dedupRatio).toBe(1);
+    expect(s.savedRatio).toBe(1);
+    expect(s.compressionRatio).toBeUndefined();
+  });
+
+  it("returns undefined without a source size", () => {
+    expect(computeSnapshotSavings({ totalBytesProcessed: 0 })).toBeUndefined();
+  });
+});
+
+describe("formatPercent", () => {
+  it("formats ratios and n/a", () => {
+    expect(formatPercent(0.9456)).toBe("94.6%");
+    expect(formatPercent(undefined)).toBe("n/a");
   });
 });

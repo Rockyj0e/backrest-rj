@@ -130,3 +130,57 @@ export const formatDuration = (ms: number, options?: FormatDurationOptions) => {
 export const normalizeSnapshotId = (id: string) => {
   return id.substring(0, 8);
 };
+
+export interface SnapshotSavings {
+  /** Size of the source data ("frontend" size), bytes. */
+  sourceBytes: number;
+  /** Bytes added after dedup, before compression. */
+  dedupedBytes: number;
+  /** Bytes actually written to the repo after dedup AND compression; undefined if restic did not report it. */
+  packedBytes?: number;
+  /** Fraction (0-1) of the source avoided by dedup alone. */
+  dedupRatio: number;
+  /** Fraction (0-1) saved by compression on the deduplicated data; undefined if not computable. */
+  compressionRatio?: number;
+  /** Fraction (0-1) of the source not written to the repo (dedup + compression); undefined if packed size unknown. */
+  savedRatio?: number;
+}
+
+/**
+ * Derives dedup / compression figures from a snapshot summary.
+ * Returns undefined when there is no source size to compare against.
+ * data_added_packed is only reported by restic >= 0.17 (and compression only
+ * exists on repo format v2), so packed-derived values are optional.
+ */
+export const computeSnapshotSavings = (summary: {
+  totalBytesProcessed?: number | bigint;
+  dataAdded?: number | bigint;
+  dataAddedPacked?: number | bigint;
+}): SnapshotSavings | undefined => {
+  const sourceBytes = Number(summary.totalBytesProcessed ?? 0);
+  const dedupedBytes = Number(summary.dataAdded ?? 0);
+  const packed = Number(summary.dataAddedPacked ?? 0);
+  if (sourceBytes <= 0) {
+    return undefined;
+  }
+  // packed === 0 while data was added means restic did not report it.
+  const packedKnown = packed > 0 || dedupedBytes === 0;
+  const packedBytes = packedKnown ? packed : undefined;
+  return {
+    sourceBytes,
+    dedupedBytes,
+    packedBytes,
+    dedupRatio: 1 - dedupedBytes / sourceBytes,
+    compressionRatio:
+      packedBytes !== undefined && dedupedBytes > 0
+        ? 1 - packedBytes / dedupedBytes
+        : undefined,
+    savedRatio:
+      packedBytes !== undefined ? 1 - packedBytes / sourceBytes : undefined,
+  };
+};
+
+export const formatPercent = (ratio?: number) =>
+  ratio === undefined || !isFinite(ratio)
+    ? "n/a"
+    : `${(ratio * 100).toFixed(1)}%`;
