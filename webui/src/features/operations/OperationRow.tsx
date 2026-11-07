@@ -316,7 +316,12 @@ export const OperationRow = ({
       bodyItems.push({
         key: "efficiency",
         label: m.op_row_storage_efficiency(),
-        children: <StorageEfficiency savings={efficiency} />,
+        children: (
+          <StorageEfficiency
+            savings={efficiency}
+            parentId={snapshotOp.snapshot?.parent}
+          />
+        ),
       });
     }
     bodyItems.push({

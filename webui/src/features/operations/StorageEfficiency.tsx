@@ -6,6 +6,7 @@ import {
   formatBytes,
   formatPercent,
   formatReductionRatio,
+  normalizeSnapshotId,
 } from "../../lib/formatting";
 import {
   getStorageEfficiencyShowRatio,
@@ -73,8 +74,10 @@ const Step = ({ label, ratio }: { label: string; ratio?: number }) => (
 
 export const StorageEfficiency = ({
   savings,
+  parentId,
 }: {
   savings: SnapshotSavings;
+  parentId?: string;
 }) => {
   const [showRatio, setShowRatio] = useState(getStorageEfficiencyShowRatio);
   const saved = savings.savedRatio ?? savings.dedupRatio;
@@ -90,8 +93,19 @@ export const StorageEfficiency = ({
 
   return (
     <Stack gap={2} style={{ containerType: "inline-size" }}>
+      <Text fontSize="sm">
+        {m.op_row_efficiency_summary({
+          reused: formatBytes(
+            Math.max(0, savings.sourceBytes - savings.dedupedBytes),
+          ),
+          total: formatBytes(savings.sourceBytes),
+          added: formatBytes(savings.packedBytes ?? savings.dedupedBytes),
+        })}
+      </Text>
       <Text fontSize="xs" color="fg.muted">
-        {m.op_row_storage_efficiency_hint()}
+        {parentId
+          ? m.op_row_efficiency_parent({ id: normalizeSnapshotId(parentId) })
+          : m.op_row_efficiency_first()}
       </Text>
       <Flex align="stretch" gap={1}>
         <Stage
@@ -100,7 +114,7 @@ export const StorageEfficiency = ({
         />
         <Step label={m.op_row_dedup_step()} ratio={savings.dedupRatio} />
         <Stage
-          label={m.op_row_after_dedup()}
+          label={m.op_row_new_data()}
           value={formatBytes(savings.dedupedBytes)}
         />
         {savings.packedBytes !== undefined && (
