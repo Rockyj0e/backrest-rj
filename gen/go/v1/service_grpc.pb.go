@@ -31,6 +31,7 @@ const (
 	Backrest_GetOperations_FullMethodName        = "/v1.Backrest/GetOperations"
 	Backrest_ListSnapshots_FullMethodName        = "/v1.Backrest/ListSnapshots"
 	Backrest_ListSnapshotFiles_FullMethodName    = "/v1.Backrest/ListSnapshotFiles"
+	Backrest_GetSnapshotChanges_FullMethodName   = "/v1.Backrest/GetSnapshotChanges"
 	Backrest_Backup_FullMethodName               = "/v1.Backrest/Backup"
 	Backrest_DoRepoTask_FullMethodName           = "/v1.Backrest/DoRepoTask"
 	Backrest_Forget_FullMethodName               = "/v1.Backrest/Forget"
@@ -59,6 +60,8 @@ type BackrestClient interface {
 	GetOperations(ctx context.Context, in *GetOperationsRequest, opts ...grpc.CallOption) (*OperationList, error)
 	ListSnapshots(ctx context.Context, in *ListSnapshotsRequest, opts ...grpc.CallOption) (*ResticSnapshotList, error)
 	ListSnapshotFiles(ctx context.Context, in *ListSnapshotFilesRequest, opts ...grpc.CallOption) (*ListSnapshotFilesResponse, error)
+	// GetSnapshotChanges compares a snapshot with its parent and returns the new and modified data grouped by folder.
+	GetSnapshotChanges(ctx context.Context, in *GetSnapshotChangesRequest, opts ...grpc.CallOption) (*GetSnapshotChangesResponse, error)
 	// Backup schedules a backup operation. It accepts a plan id and returns empty if the task is enqueued.
 	Backup(ctx context.Context, in *BackupRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// DoRepoTask schedules a repo task. It accepts a repo id and a task type and returns the scheduled operation's ID.
@@ -197,6 +200,16 @@ func (c *backrestClient) ListSnapshotFiles(ctx context.Context, in *ListSnapshot
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListSnapshotFilesResponse)
 	err := c.cc.Invoke(ctx, Backrest_ListSnapshotFiles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *backrestClient) GetSnapshotChanges(ctx context.Context, in *GetSnapshotChangesRequest, opts ...grpc.CallOption) (*GetSnapshotChangesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSnapshotChangesResponse)
+	err := c.cc.Invoke(ctx, Backrest_GetSnapshotChanges_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -346,6 +359,8 @@ type BackrestServer interface {
 	GetOperations(context.Context, *GetOperationsRequest) (*OperationList, error)
 	ListSnapshots(context.Context, *ListSnapshotsRequest) (*ResticSnapshotList, error)
 	ListSnapshotFiles(context.Context, *ListSnapshotFilesRequest) (*ListSnapshotFilesResponse, error)
+	// GetSnapshotChanges compares a snapshot with its parent and returns the new and modified data grouped by folder.
+	GetSnapshotChanges(context.Context, *GetSnapshotChangesRequest) (*GetSnapshotChangesResponse, error)
 	// Backup schedules a backup operation. It accepts a plan id and returns empty if the task is enqueued.
 	Backup(context.Context, *BackupRequest) (*emptypb.Empty, error)
 	// DoRepoTask schedules a repo task. It accepts a repo id and a task type and returns the scheduled operation's ID.
@@ -410,6 +425,9 @@ func (UnimplementedBackrestServer) ListSnapshots(context.Context, *ListSnapshots
 }
 func (UnimplementedBackrestServer) ListSnapshotFiles(context.Context, *ListSnapshotFilesRequest) (*ListSnapshotFilesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListSnapshotFiles not implemented")
+}
+func (UnimplementedBackrestServer) GetSnapshotChanges(context.Context, *GetSnapshotChangesRequest) (*GetSnapshotChangesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSnapshotChanges not implemented")
 }
 func (UnimplementedBackrestServer) Backup(context.Context, *BackupRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method Backup not implemented")
@@ -637,6 +655,24 @@ func _Backrest_ListSnapshotFiles_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BackrestServer).ListSnapshotFiles(ctx, req.(*ListSnapshotFilesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Backrest_GetSnapshotChanges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSnapshotChangesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BackrestServer).GetSnapshotChanges(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Backrest_GetSnapshotChanges_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BackrestServer).GetSnapshotChanges(ctx, req.(*GetSnapshotChangesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -892,6 +928,10 @@ var Backrest_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListSnapshotFiles",
 			Handler:    _Backrest_ListSnapshotFiles_Handler,
+		},
+		{
+			MethodName: "GetSnapshotChanges",
+			Handler:    _Backrest_GetSnapshotChanges_Handler,
 		},
 		{
 			MethodName: "Backup",

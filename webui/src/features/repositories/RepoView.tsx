@@ -206,7 +206,7 @@ export const RepoView = ({
             {
               key: "growth",
               label: m.repo_growth_title(),
-              children: <RepoGrowth repoGuid={repo.guid!} />,
+              children: <RepoGrowth repoId={repo.id!} repoGuid={repo.guid!} />,
             },
           ]}
           defaultExpanded={getRepoGrowthExpanded() ? ["growth"] : []}

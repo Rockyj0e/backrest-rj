@@ -396,6 +396,22 @@ func (s *BackrestHandler) ListSnapshotFiles(ctx context.Context, req *connect.Re
 	}), nil
 }
 
+func (s *BackrestHandler) GetSnapshotChanges(ctx context.Context, req *connect.Request[v1.GetSnapshotChangesRequest]) (*connect.Response[v1.GetSnapshotChangesResponse], error) {
+	query := req.Msg
+
+	repo, err := s.orchestrator.GetRepoOrchestrator(query.RepoId)
+	if err != nil {
+		return nil, withLookupCode(fmt.Errorf("failed to get repo: %w", err))
+	}
+
+	resp, err := repo.GetSnapshotChanges(ctx, query.SnapshotId, query.ParentId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get snapshot changes: %w", err)
+	}
+
+	return connect.NewResponse(resp), nil
+}
+
 // GetOperationEvents implements GET /v1/events/operations
 func (s *BackrestHandler) GetOperationEvents(ctx context.Context, req *connect.Request[emptypb.Empty], resp *connect.ServerStream[v1.OperationEvent]) error {
 	errChan := make(chan error, 1)

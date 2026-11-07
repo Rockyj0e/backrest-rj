@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Box, Flex, Stack, Text } from "@chakra-ui/react";
 import { create } from "@bufbuild/protobuf";
-import { GetOperationsRequestSchema } from "../../../gen/ts/v1/service_pb";
+import {
+  GetOperationsRequestSchema,
+  GetSnapshotChangesResponse,
+} from "../../../gen/ts/v1/service_pb";
+import { FiChevronDown, FiChevronRight } from "react-icons/fi";
 import { getOperations } from "../../api/oplog";
 import { alerts, formatErrorAlert } from "../../components/common/Alerts";
 import { MAX_OPERATION_HISTORY } from "../../constants";
@@ -13,21 +17,49 @@ import {
   rowCost,
   summarizeGrowth,
 } from "./repoGrowth";
+import { SnapshotChanges } from "./SnapshotChanges";
 
 const GROWTH_ROWS = 30;
 
-const Row = ({ row, max }: { row: GrowthRow; max: number }) => {
+const Row = ({
+  row,
+  max,
+  open,
+  onToggle,
+}: {
+  row: GrowthRow;
+  max: number;
+  open: boolean;
+  onToggle: () => void;
+}) => {
   const cost = rowCost(row);
   return (
     <Flex
+      role="button"
+      tabIndex={0}
+      aria-expanded={open}
+      aria-label={m.repo_growth_row_open()}
+      cursor="pointer"
       align="center"
       gap={3}
+      borderRadius="md"
+      _hover={{ bg: "bg.muted" }}
+      onClick={onToggle}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
       title={m.repo_growth_row_title({
         added: formatBytes(row.added),
         stored: row.stored === undefined ? "n/a" : formatBytes(row.stored),
         source: formatBytes(row.source),
       })}
     >
+      <Box flex="0 0 auto" color="fg.muted">
+        {open ? <FiChevronDown /> : <FiChevronRight />}
+      </Box>
       <Box flex="0 0 auto" minW="9.5rem">
         <Text fontSize="sm">{formatTime(row.timeMs)}</Text>
         <Text fontSize="xs" color="fg.muted">
@@ -55,12 +87,23 @@ const Row = ({ row, max }: { row: GrowthRow; max: number }) => {
   );
 };
 
-export const RepoGrowth = ({ repoGuid }: { repoGuid: string }) => {
+export const RepoGrowth = ({
+  repoId,
+  repoGuid,
+}: {
+  repoId: string;
+  repoGuid: string;
+}) => {
   const [rows, setRows] = useState<GrowthRow[] | null>(null);
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  // comparing a snapshot with its parent lists the whole snapshot, keep what was already loaded
+  const changesCache = useRef(new Map<string, GetSnapshotChangesResponse>());
 
   useEffect(() => {
     let cancelled = false;
     setRows(null);
+    setOpenKey(null);
+    changesCache.current.clear();
     getOperations(
       create(GetOperationsRequestSchema, {
         selector: { repoGuid },
@@ -103,7 +146,24 @@ export const RepoGrowth = ({ repoGuid }: { repoGuid: string }) => {
       </Text>
       <Stack gap={2}>
         {rows.map((row) => (
-          <Row key={row.key} row={row} max={max} />
+          <Box key={row.key}>
+            <Row
+              row={row}
+              max={max}
+              open={openKey === row.key}
+              onToggle={() => setOpenKey(openKey === row.key ? null : row.key)}
+            />
+            {openKey === row.key && (
+              <Box mt={2} ml={7} p={3} borderRadius="md" bg="bg.subtle">
+                <SnapshotChanges
+                  repoId={repoId}
+                  snapshotId={row.key}
+                  parentId={row.parent || undefined}
+                  cache={changesCache.current}
+                />
+              </Box>
+            )}
+          </Box>
         ))}
       </Stack>
     </Stack>

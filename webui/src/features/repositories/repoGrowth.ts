@@ -2,6 +2,8 @@ import { Operation } from "../../../gen/ts/v1/operations_pb";
 
 export interface GrowthRow {
   key: string;
+  /** Snapshot the backup was made against, empty for the first snapshot of a backup. */
+  parent: string;
   timeMs: number;
   host: string;
   plan: string;
@@ -31,6 +33,7 @@ export const buildGrowthRows = (ops: Operation[], limit = 30): GrowthRow[] => {
     const packed = Number(s.dataAddedPacked);
     rows.push({
       key: snap.id,
+      parent: snap.parent,
       timeMs: Number(snap.unixTimeMs),
       host: snap.hostname,
       plan: op.planId,

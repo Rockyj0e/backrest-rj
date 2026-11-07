@@ -11,6 +11,7 @@ const indexOp = (
     dataAddedPacked: bigint;
     totalBytesProcessed: bigint;
   },
+  parent = "",
 ) =>
   create(OperationSchema, {
     planId: "plan",
@@ -21,6 +22,7 @@ const indexOp = (
           id,
           unixTimeMs: BigInt(timeMs),
           hostname: "host",
+          parent,
           summary,
         },
       },
@@ -46,6 +48,18 @@ describe("buildGrowthRows", () => {
     const rows = buildGrowthRows(ops, 10);
     expect(rows.map((r) => r.key)).toEqual(["b", "a"]);
     expect(buildGrowthRows(ops, 1).map((r) => r.key)).toEqual(["b"]);
+  });
+
+  it("keeps the parent snapshot id", () => {
+    const rows = buildGrowthRows([
+      indexOp(
+        "b",
+        2,
+        { dataAdded: 1n, dataAddedPacked: 1n, totalBytesProcessed: 1n },
+        "a",
+      ),
+    ]);
+    expect(rows[0].parent).toBe("a");
   });
 
   it("treats a missing packed size as unknown but zero added as known", () => {
