@@ -295,6 +295,8 @@
   "op_row_dedup_step": "dedup",
   "op_row_compression_step": "compressione",
   "op_row_space_saved": "Spazio risparmiato",
+  "op_row_show_ratio": "Mostra rapporto di riduzione",
+  "op_row_hide_ratio": "Nascondi rapporto di riduzione",
   "op_row_compression_unavailable": "Compressione non riportata (richiede restic 0.17+ e un repository compresso).",
   "op_row_restore_desc": "Ripristina {path} in {target}",
   "op_row_download_files": "Scarica file",

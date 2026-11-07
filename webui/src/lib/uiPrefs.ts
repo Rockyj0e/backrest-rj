@@ -1,18 +1,30 @@
 const STORAGE_EFFICIENCY_KEY = "backrest:storageEfficiencyExpanded";
+const STORAGE_EFFICIENCY_RATIO_KEY = "backrest:storageEfficiencyShowRatio";
 
 // localStorage can be empty or throw (private mode, blocked storage), so every access is guarded.
-export const getStorageEfficiencyExpanded = (): boolean => {
+// A flag is on unless explicitly stored as "0".
+const getFlag = (key: string): boolean => {
   try {
-    return localStorage.getItem(STORAGE_EFFICIENCY_KEY) !== "0";
+    return localStorage.getItem(key) !== "0";
   } catch {
     return true;
   }
 };
 
-export const setStorageEfficiencyExpanded = (expanded: boolean) => {
+const setFlag = (key: string, on: boolean) => {
   try {
-    localStorage.setItem(STORAGE_EFFICIENCY_KEY, expanded ? "1" : "0");
+    localStorage.setItem(key, on ? "1" : "0");
   } catch {
     // preference simply isn't remembered
   }
 };
+
+export const getStorageEfficiencyExpanded = () =>
+  getFlag(STORAGE_EFFICIENCY_KEY);
+export const setStorageEfficiencyExpanded = (expanded: boolean) =>
+  setFlag(STORAGE_EFFICIENCY_KEY, expanded);
+
+export const getStorageEfficiencyShowRatio = () =>
+  getFlag(STORAGE_EFFICIENCY_RATIO_KEY);
+export const setStorageEfficiencyShowRatio = (show: boolean) =>
+  setFlag(STORAGE_EFFICIENCY_RATIO_KEY, show);

@@ -272,6 +272,8 @@
   "op_row_dedup_step": "dedup",
   "op_row_compression_step": "compression",
   "op_row_space_saved": "Space saved",
+  "op_row_show_ratio": "Show reduction ratio",
+  "op_row_hide_ratio": "Hide reduction ratio",
   "op_row_compression_unavailable": "Compression not reported (needs restic 0.17+ and a compressed repository).",
   "op_row_restore_desc": "Restore {path} to {target}",
   "op_row_download_files": "Download File(s)",
