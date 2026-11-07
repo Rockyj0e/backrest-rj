@@ -18,11 +18,14 @@ export interface HeavyAccordionItem {
 interface HeavyAccordionProps {
   items: HeavyAccordionItem[];
   defaultExpanded?: string[];
+  /** Called with the currently expanded item keys whenever the user expands or collapses an item. */
+  onExpandedChange?: (expanded: string[]) => void;
 }
 
 export const HeavyAccordion = ({
   items,
   defaultExpanded = [],
+  onExpandedChange,
 }: HeavyAccordionProps) => {
   const [visitedKeys, setVisitedKeys] = useState<Set<string>>(new Set());
 
@@ -47,6 +50,7 @@ export const HeavyAccordion = ({
   }, [defaultExpanded.join(",")]);
 
   const handleAccordionChange = (e: { value: string[] }) => {
+    onExpandedChange?.(e.value);
     setVisitedKeys((prev) => {
       let changed = false;
       for (const k of e.value) {

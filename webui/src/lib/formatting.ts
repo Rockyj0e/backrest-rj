@@ -184,3 +184,12 @@ export const formatPercent = (ratio?: number) =>
   ratio === undefined || !isFinite(ratio)
     ? "n/a"
     : `${(ratio * 100).toFixed(1)}%`;
+
+/** "416 : 1" style reduction ratio; undefined when the stored size is zero or unknown. */
+export const formatReductionRatio = (
+  sourceBytes: number,
+  storedBytes?: number,
+) =>
+  storedBytes && storedBytes > 0
+    ? `${Math.round(sourceBytes / storedBytes).toLocaleString()} : 1`
+    : undefined;

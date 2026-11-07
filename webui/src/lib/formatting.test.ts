@@ -3,6 +3,7 @@ import {
   computeSnapshotSavings,
   formatBytes,
   formatPercent,
+  formatReductionRatio,
   formatDate,
   formatDuration,
   formatMonth,
@@ -213,5 +214,17 @@ describe("formatPercent", () => {
   it("formats ratios and n/a", () => {
     expect(formatPercent(0.9456)).toBe("94.6%");
     expect(formatPercent(undefined)).toBe("n/a");
+  });
+});
+
+describe("formatReductionRatio", () => {
+  it("rounds the source/stored ratio", () => {
+    expect(formatReductionRatio(1000, 4)).toBe("250 : 1");
+    expect(formatReductionRatio(1000, 3)).toBe("333 : 1");
+  });
+
+  it("returns undefined for zero or unknown stored size", () => {
+    expect(formatReductionRatio(1000, 0)).toBeUndefined();
+    expect(formatReductionRatio(1000, undefined)).toBeUndefined();
   });
 });

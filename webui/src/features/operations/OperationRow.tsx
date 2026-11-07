@@ -37,10 +37,14 @@ import {
   SnapshotSummary,
 } from "../../../gen/ts/v1/restic_pb";
 import { SnapshotBrowser } from "../repositories/SnapshotBrowser";
+import { StorageEfficiency } from "./StorageEfficiency";
+import {
+  getStorageEfficiencyExpanded,
+  setStorageEfficiencyExpanded,
+} from "../../lib/uiPrefs";
 import {
   computeSnapshotSavings,
   formatBytes,
-  formatPercent,
   formatDuration,
   formatTime,
   normalizeSnapshotId,
@@ -302,6 +306,19 @@ export const OperationRow = ({
       label: m.op_row_details(),
       children: <SnapshotDetails snapshot={snapshotOp.snapshot!} />,
     });
+    const efficiency = snapshotOp.snapshot?.summary
+      ? computeSnapshotSavings(snapshotOp.snapshot.summary)
+      : undefined;
+    if (efficiency) {
+      if (getStorageEfficiencyExpanded()) {
+        expandedBodyItems.push("efficiency");
+      }
+      bodyItems.push({
+        key: "efficiency",
+        label: m.op_row_storage_efficiency(),
+        children: <StorageEfficiency savings={efficiency} />,
+      });
+    }
     bodyItems.push({
       key: "browser",
       label: m.op_row_snapshot_browser(),
@@ -471,6 +488,11 @@ export const OperationRow = ({
             <HeavyAccordion
               items={bodyItems}
               defaultExpanded={expandedBodyItems}
+              onExpandedChange={(expanded) => {
+                if (bodyItems.some((i) => i.key === "efficiency")) {
+                  setStorageEfficiencyExpanded(expanded.includes("efficiency"));
+                }
+              }}
             />
           </Box>
         )}
@@ -481,7 +503,6 @@ export const OperationRow = ({
 
 const SnapshotDetails = ({ snapshot }: { snapshot: ResticSnapshot }) => {
   const summary = snapshot.summary;
-  const savings = summary ? computeSnapshotSavings(summary) : undefined;
 
   return (
     <>
@@ -526,52 +547,12 @@ const SnapshotDetails = ({ snapshot }: { snapshot: ResticSnapshot }) => {
           </SimpleGrid>
           <SimpleGrid columns={3} gap={4}>
             <Box>
-              <Text fontWeight="bold">{m.op_row_bytes_added()}</Text>
-              <Text color="fg.muted">
-                {formatBytes(Number(summary.dataAdded))}
-              </Text>
-            </Box>
-            <Box>
-              <Text fontWeight="bold">{m.op_row_total_bytes()}</Text>
-              <Text color="fg.muted">
-                {formatBytes(Number(summary.totalBytesProcessed))}
-              </Text>
-            </Box>
-            <Box>
               <Text fontWeight="bold">{m.op_row_total_files()}</Text>
               <Text color="fg.muted">
                 {summary.totalFilesProcessed.toLocaleString()}
               </Text>
             </Box>
           </SimpleGrid>
-          {savings && (
-            <SimpleGrid columns={{ base: 2, md: 4 }} gap={4} mt={2}>
-              <Box>
-                <Text fontWeight="bold">{m.op_row_fe_size()}</Text>
-                <Text color="fg.muted">{formatBytes(savings.sourceBytes)}</Text>
-              </Box>
-              <Box>
-                <Text fontWeight="bold">{m.op_row_packed_size()}</Text>
-                <Text color="fg.muted">
-                  {savings.packedBytes === undefined
-                    ? "n/a"
-                    : `${formatBytes(savings.packedBytes)} (${formatPercent(savings.savedRatio)})`}
-                </Text>
-              </Box>
-              <Box>
-                <Text fontWeight="bold">{m.op_row_dedup_pct()}</Text>
-                <Text color="fg.muted">
-                  {formatPercent(savings.dedupRatio)}
-                </Text>
-              </Box>
-              <Box>
-                <Text fontWeight="bold">{m.op_row_compression_pct()}</Text>
-                <Text color="fg.muted">
-                  {formatPercent(savings.compressionRatio)}
-                </Text>
-              </Box>
-            </SimpleGrid>
-          )}
         </>
       )}
     </>
