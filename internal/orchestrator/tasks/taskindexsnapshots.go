@@ -47,7 +47,7 @@ func indexSnapshotsHelper(ctx context.Context, st ScheduledTask, taskRunner Task
 	}
 
 	// collect all current snapshot IDs.
-	currentIds, err := indexCurrentSnapshotIdsForRepo(taskRunner, t.Repo().GetGuid())
+	currentIds, missingPacked, err := indexCurrentSnapshotIdsForRepo(taskRunner, t.Repo().GetGuid())
 	if err != nil {
 		return fmt.Errorf("get known snapshot IDs for repo %q: %w", t.RepoID(), err)
 	}
@@ -56,9 +56,15 @@ func indexSnapshotsHelper(ctx context.Context, st ScheduledTask, taskRunner Task
 
 	// Index newly found operations
 	var indexOps []*v1.Operation
+	// Already-indexed snapshots whose stored summary lacks data_added_packed (indexed before the
+	// field was tracked) but which restic now reports it for: opId -> packed size.
+	packedBackfill := make(map[int64]int64)
 	for _, snapshot := range snapshots {
-		if _, ok := currentIds[snapshot.Id]; ok {
+		if opId, ok := currentIds[snapshot.Id]; ok {
 			foundIds[snapshot.Id] = struct{}{}
+			if _, needs := missingPacked[snapshot.Id]; needs && snapshot.SnapshotSummary.DataAddedPacked > 0 {
+				packedBackfill[opId] = snapshot.SnapshotSummary.DataAddedPacked
+			}
 			continue
 		}
 
@@ -94,6 +100,27 @@ func indexSnapshotsHelper(ctx context.Context, st ScheduledTask, taskRunner Task
 		return fmt.Errorf("Create snapshot operations: %w", err)
 	}
 
+	// Backfill data_added_packed on operations indexed before the field was tracked.
+	var backfillOps []*v1.Operation
+	for opId, packed := range packedBackfill {
+		op, err := taskRunner.GetOperation(opId)
+		if err != nil {
+			return fmt.Errorf("get operation %v: %w", opId, err)
+		}
+		snapshotOp, ok := op.Op.(*v1.Operation_OperationIndexSnapshot)
+		if !ok || snapshotOp.OperationIndexSnapshot.GetSnapshot().GetSummary() == nil {
+			continue
+		}
+		snapshotOp.OperationIndexSnapshot.Snapshot.Summary.DataAddedPacked = packed
+		backfillOps = append(backfillOps, op)
+	}
+	if len(backfillOps) > 0 {
+		if err := taskRunner.UpdateOperation(backfillOps...); err != nil {
+			return fmt.Errorf("backfill packed size on %v index snapshot operations: %w", len(backfillOps), err)
+		}
+		l.Sugar().Infof("backfilled data_added_packed on %v already-indexed snapshots", len(backfillOps))
+	}
+
 	// Mark missing operations as newly forgotten.
 	for id, opId := range currentIds {
 		if _, ok := foundIds[id]; ok {
@@ -124,9 +151,11 @@ func indexSnapshotsHelper(ctx context.Context, st ScheduledTask, taskRunner Task
 	return err
 }
 
-// returns a map of current (e.g. not forgotten) snapshot IDs for the plan.
-func indexCurrentSnapshotIdsForRepo(taskRunner TaskRunner, repoGUID string) (map[string]int64, error) {
+// returns a map of current (e.g. not forgotten) snapshot IDs for the plan, and the set of those
+// whose stored summary reports data added but no packed size (indexed before that field existed).
+func indexCurrentSnapshotIdsForRepo(taskRunner TaskRunner, repoGUID string) (map[string]int64, map[string]struct{}, error) {
 	knownIds := make(map[string]int64)
+	missingPacked := make(map[string]struct{})
 
 	startTime := time.Now()
 	if err := taskRunner.QueryOperations(oplog.Query{}.
@@ -134,15 +163,19 @@ func indexCurrentSnapshotIdsForRepo(taskRunner TaskRunner, repoGUID string) (map
 		func(op *v1.Operation) error {
 			if snapshotOp, ok := op.Op.(*v1.Operation_OperationIndexSnapshot); ok {
 				if !snapshotOp.OperationIndexSnapshot.Forgot {
-					knownIds[snapshotOp.OperationIndexSnapshot.Snapshot.Id] = op.Id
+					snapshot := snapshotOp.OperationIndexSnapshot.Snapshot
+					knownIds[snapshot.Id] = op.Id
+					if s := snapshot.GetSummary(); s != nil && s.DataAdded > 0 && s.DataAddedPacked == 0 {
+						missingPacked[snapshot.Id] = struct{}{}
+					}
 				}
 			}
 			return nil
 		}); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	zap.S().Debugf("found %v known snapshot IDs for repo %v in %v", len(knownIds), repoGUID, time.Since(startTime))
-	return knownIds, nil
+	return knownIds, missingPacked, nil
 }
 
 func planForSnapshot(snapshot *v1.ResticSnapshot) string {
