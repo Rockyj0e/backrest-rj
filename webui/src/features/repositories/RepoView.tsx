@@ -19,6 +19,12 @@ import {
 import { Tooltip } from "../../components/ui/tooltip";
 import { OperationListView } from "../operations/OperationListView";
 import { OperationTreeView } from "../operations/OperationTreeView";
+import { RepoGrowth } from "./RepoGrowth";
+import { HeavyAccordion } from "../../components/common/HeavyAccordion";
+import {
+  getRepoGrowthExpanded,
+  setRepoGrowthExpanded,
+} from "../../lib/uiPrefs";
 import {
   MAX_OPERATION_HISTORY,
   STATS_OPERATION_HISTORY,
@@ -193,6 +199,22 @@ export const RepoView = ({
           </MenuRoot>
         </Group>
       </Flex>
+
+      <Box mb={4}>
+        <HeavyAccordion
+          items={[
+            {
+              key: "growth",
+              label: m.repo_growth_title(),
+              children: <RepoGrowth repoGuid={repo.guid!} />,
+            },
+          ]}
+          defaultExpanded={getRepoGrowthExpanded() ? ["growth"] : []}
+          onExpandedChange={(expanded) =>
+            setRepoGrowthExpanded(expanded.includes("growth"))
+          }
+        />
+      </Box>
 
       <TabsRoot defaultValue="tree" lazyMount>
         <TabsList>
