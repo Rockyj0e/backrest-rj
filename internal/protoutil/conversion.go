@@ -28,6 +28,7 @@ func SnapshotToProto(s *restic.Snapshot) *v1.ResticSnapshot {
 			DataBlobs:           int64(s.SnapshotSummary.DataBlobs),
 			TreeBlobs:           int64(s.SnapshotSummary.TreeBlobs),
 			DataAdded:           int64(s.SnapshotSummary.DataAdded),
+			DataAddedPacked:     int64(s.SnapshotSummary.DataAddedPacked),
 			TotalFilesProcessed: int64(s.SnapshotSummary.TotalFilesProcessed),
 			TotalBytesProcessed: int64(s.SnapshotSummary.TotalBytesProcessed),
 			TotalDuration:       float64(s.SnapshotSummary.DurationMs()) / 1000.0,

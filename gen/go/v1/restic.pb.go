@@ -144,6 +144,7 @@ type SnapshotSummary struct {
 	TotalFilesProcessed int64                  `protobuf:"varint,10,opt,name=total_files_processed,json=totalFilesProcessed,proto3" json:"total_files_processed,omitempty"`
 	TotalBytesProcessed int64                  `protobuf:"varint,11,opt,name=total_bytes_processed,json=totalBytesProcessed,proto3" json:"total_bytes_processed,omitempty"`
 	TotalDuration       float64                `protobuf:"fixed64,12,opt,name=total_duration,json=totalDuration,proto3" json:"total_duration,omitempty"`
+	DataAddedPacked     int64                  `protobuf:"varint,13,opt,name=data_added_packed,json=dataAddedPacked,proto3" json:"data_added_packed,omitempty"` // bytes added after dedup AND compression (restic >= 0.17)
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -258,6 +259,13 @@ func (x *SnapshotSummary) GetTotalBytesProcessed() int64 {
 func (x *SnapshotSummary) GetTotalDuration() float64 {
 	if x != nil {
 		return x.TotalDuration
+	}
+	return 0
+}
+
+func (x *SnapshotSummary) GetDataAddedPacked() int64 {
+	if x != nil {
+		return x.DataAddedPacked
 	}
 	return 0
 }
@@ -863,7 +871,7 @@ const file_v1_restic_proto_rawDesc = "" +
 	"\x06parent\x18\x06 \x01(\tR\x06parent\x12\x14\n" +
 	"\x05paths\x18\a \x03(\tR\x05paths\x12\x12\n" +
 	"\x04tags\x18\b \x03(\tR\x04tags\x12-\n" +
-	"\asummary\x18\t \x01(\v2\x13.v1.SnapshotSummaryR\asummary\"\xd1\x03\n" +
+	"\asummary\x18\t \x01(\v2\x13.v1.SnapshotSummaryR\asummary\"\xfd\x03\n" +
 	"\x0fSnapshotSummary\x12\x1b\n" +
 	"\tfiles_new\x18\x01 \x01(\x03R\bfilesNew\x12#\n" +
 	"\rfiles_changed\x18\x02 \x01(\x03R\ffilesChanged\x12)\n" +
@@ -880,7 +888,8 @@ const file_v1_restic_proto_rawDesc = "" +
 	"\x15total_files_processed\x18\n" +
 	" \x01(\x03R\x13totalFilesProcessed\x122\n" +
 	"\x15total_bytes_processed\x18\v \x01(\x03R\x13totalBytesProcessed\x12%\n" +
-	"\x0etotal_duration\x18\f \x01(\x01R\rtotalDuration\"F\n" +
+	"\x0etotal_duration\x18\f \x01(\x01R\rtotalDuration\x12*\n" +
+	"\x11data_added_packed\x18\r \x01(\x03R\x0fdataAddedPacked\"F\n" +
 	"\x12ResticSnapshotList\x120\n" +
 	"\tsnapshots\x18\x01 \x03(\v2\x12.v1.ResticSnapshotR\tsnapshots\"\x8e\x01\n" +
 	"\x13BackupProgressEntry\x127\n" +

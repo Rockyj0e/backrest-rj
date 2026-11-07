@@ -30,6 +30,7 @@ message SnapshotSummary {
   int64 total_files_processed = 10;
   int64 total_bytes_processed = 11;
   double total_duration = 12;
+  int64 data_added_packed = 13; // bytes added after dedup AND compression (restic >= 0.17)
 }
 
 // ResticSnapshotList represents a list of restic snapshots.
