@@ -95,14 +95,23 @@ export const RepoGrowth = ({
   repoGuid: string;
 }) => {
   const [rows, setRows] = useState<GrowthRow[] | null>(null);
-  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [openKeys, setOpenKeys] = useState<Set<string>>(new Set());
   // comparing a snapshot with its parent lists the whole snapshot, keep what was already loaded
   const changesCache = useRef(new Map<string, GetSnapshotChangesResponse>());
+
+  // Panels do not close each other: closing one above the clicked row would shift the page and
+  // move the row out from under the pointer.
+  const toggleOpen = (key: string) =>
+    setOpenKeys((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
 
   useEffect(() => {
     let cancelled = false;
     setRows(null);
-    setOpenKey(null);
+    setOpenKeys(new Set());
     changesCache.current.clear();
     getOperations(
       create(GetOperationsRequestSchema, {
@@ -150,10 +159,10 @@ export const RepoGrowth = ({
             <Row
               row={row}
               max={max}
-              open={openKey === row.key}
-              onToggle={() => setOpenKey(openKey === row.key ? null : row.key)}
+              open={openKeys.has(row.key)}
+              onToggle={() => toggleOpen(row.key)}
             />
-            {openKey === row.key && (
+            {openKeys.has(row.key) && (
               <Box mt={2} ml={7} p={3} borderRadius="md" bg="bg.subtle">
                 <SnapshotChanges
                   repoId={repoId}
