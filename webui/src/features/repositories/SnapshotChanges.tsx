@@ -121,7 +121,7 @@ export const SnapshotChanges = ({
   }
   if (!resp) {
     return (
-      <Text fontSize="sm" color="fg.muted">
+      <Text fontSize="sm" color="fg.muted" minH="8rem">
         {m.changes_loading()}
       </Text>
     );
@@ -205,7 +205,7 @@ export const SnapshotChanges = ({
         </Text>
       </Flex>
 
-      <Stack gap={2}>
+      <Stack gap={2} key={path} maxH="20rem" overflowY="auto" pr={2}>
         {items.map((item) =>
           item.folder ? (
             <Box

@@ -98,15 +98,26 @@ export const RepoGrowth = ({
   const [openKeys, setOpenKeys] = useState<Set<string>>(new Set());
   // comparing a snapshot with its parent lists the whole snapshot, keep what was already loaded
   const changesCache = useRef(new Map<string, GetSnapshotChangesResponse>());
+  const rowRefs = useRef(new Map<string, HTMLDivElement>());
 
   // Panels do not close each other: closing one above the clicked row would shift the page and
   // move the row out from under the pointer.
-  const toggleOpen = (key: string) =>
+  const toggleOpen = (key: string) => {
+    const opening = !openKeys.has(key);
     setOpenKeys((prev) => {
       const next = new Set(prev);
       if (!next.delete(key)) next.add(key);
       return next;
     });
+    if (opening) {
+      // bring the row and its panel into view instead of leaving them below the fold
+      requestAnimationFrame(() =>
+        rowRefs.current
+          .get(key)
+          ?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
+      );
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -155,7 +166,13 @@ export const RepoGrowth = ({
       </Text>
       <Stack gap={2}>
         {rows.map((row) => (
-          <Box key={row.key}>
+          <Box
+            key={row.key}
+            ref={(el: HTMLDivElement | null) => {
+              if (el) rowRefs.current.set(row.key, el);
+              else rowRefs.current.delete(row.key);
+            }}
+          >
             <Row
               row={row}
               max={max}
